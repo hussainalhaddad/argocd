@@ -181,6 +181,8 @@ spec:
           value: BH
         - name: NC_maintenance_window_start
           value: "1"
+        - name: NC_skeletondirectory=
+          value:
         - name: NC_default_timezone
           value: Asia/Bahrain
         - name: POSTGRES_DB
