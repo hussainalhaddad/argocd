@@ -348,7 +348,6 @@ metadata:
   name: postgres
   namespace: nextcloud
 spec:
-  type: ClusterIP
   selector:
     app: postgres
   ports:
