@@ -134,3 +134,16 @@ spec:
       - name: data
         persistentVolumeClaim:
           claimName: onlyoffice-data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: onlyoffice-data
+  namespace: nextcloud
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 2Gi
