@@ -36,7 +36,7 @@ spec:
           initialDelaySeconds: 10
           periodSeconds: 10
         volumeMounts:
-        - mountPath: /var/lib/postgresql # Added /data for better persistence
+        - mountPath: /var/lib/postgresql
           name: nc-db-data
       volumes:
       - name: nc-db-data
@@ -147,3 +147,105 @@ spec:
   resources:
     requests:
       storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nextcloud
+  namespace: nextcloud
+  labels:
+    app: nextcloud
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: nextcloud
+  template:
+    metadata:
+      labels:
+        app: nextcloud
+    spec:
+      containers:
+      - name: nextcloud
+        image: nextcloud
+        env:
+        - name: PHP_OPCACHE_MEMORY_CONSUMPTION
+          value: "512"
+        - name: PHP_OPCACHE_MAX_ACCELERATED_FILES
+          value: "20000"
+        - name: PHP_OPCACHE_INTERNED_STRINGS_BUFFER
+          value: "64"
+        - name: NC_default_phone_region
+          value: BH
+        - name: NC_maintenance_window_start
+          value: "1"
+        - name: NC_default_timezone
+          value: Asia/Bahrain
+        - name: POSTGRES_DB
+          value: postgres
+        - name: POSTGRES_USER
+          value: postgres
+        - name: POSTGRES_HOST
+          value: postgres
+        - name: REDIS_HOST
+          value: valkey
+        - name: REDIS_HOST_PORT
+          value: "6379"
+        - name: NEXTCLOUD_TRUSTED_DOMAINS
+          value: nextcloud.192.168.88.56.nip.io
+        - name: OVERWRITEHOST
+          value: nextcloud.192.168.88.56.nip.io
+        - name: OVERWRITECLIURL
+          value: http://nextcloud.192.168.88.56.nip.io
+        - name: OVERWRITEPROTOCOL
+          value: http
+        - name: NEXTCLOUD_ADMIN_USER
+          value: hussain
+        - name: ONLYOFFICE_DOMAIN
+          value: onlyoffice.192.168.88.56.nip.io
+        envFrom:
+        - secretRef:
+            name: nc-admin-password
+        - secretRef:
+            name: nc-db-password
+        - secretRef:
+            name: nc-office-jwt
+        ports:
+        - containerPort: 80
+          name: http
+        startupProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 3
+        volumeMounts:
+        - name: nc-data
+          mountPath: /var/www/html
+      # Cron Sidecar
+      - name: cron
+        image: nextcloud
+        command: ["/cron.sh"]
+        volumeMounts:
+        - name: nc-data
+          mountPath: /var/www/html
+      volumes:
+      - name: nc-data
+        persistentVolumeClaim:
+          claimName: nc-data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nc-data
+  namespace: nextcloud
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 20Gi
